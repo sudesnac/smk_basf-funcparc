@@ -12,9 +12,15 @@ hcp_package_dict:
  '{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/Movement_Regressors_dt.txt': 7T_REST_1.6mm_preproc
  '{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/rfMRI_REST2_7T_AP.nii.gz': 7T_REST_preproc_extended
  '{subject}/MNINonLinear/ROIs/Atlas_wmparc.1.60.nii.gz': 3T_Structural_1.6mm_preproc
-    
+
+hcp1200_dir: /scratch/rhaast/ZI_funcparc/hcp1200
+
+seed_roi: cfg/seed.nii.gz
 subcort_atlas: cfg/sub-MNI2009b_desc-allFSstyle_workbench.nii.gz
-hcpmmp_atlas: cfg/HCP-MMP_BigBrain1p6mm.59k_fs_LR.dlabel.nii
+subcort_labels: cfg/sub-MNI2009b_desc-allFSstyle_labels.txt
+lh_mmp: cfg/lh.hcp-mmp.59k_fs_LR.label.gii
+rh_mmp: cfg/rh.hcp-mmp.59k_fs_LR.label.gii
+#hcpmmp_atlas: cfg/HCP-MMP_BigBrain1p6mm.59k_fs_LR.dlabel.nii
 
 singularity_connectomewb: /project/6007967/software/transparentsingularity/connectome-workbench_1.4.1_20191117.simg/connectome-workbench_1.4.1_20191117.simg
 singularity_ciftify: /project/6007967/akhanf/singularity/bids-apps/tigrlab_fmriprep_ciftify_v1.3.2-2.3.3.sif
