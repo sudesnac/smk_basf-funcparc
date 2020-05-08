@@ -15,12 +15,12 @@ hcp_package_dict:
 
 hcp1200_dir: /scratch/rhaast/ZI_funcparc/hcp1200
 
+seed: BASF
 seed_roi: cfg/seed.nii.gz
 subcort_atlas: cfg/sub-MNI2009b_desc-allFSstyle_workbench.nii.gz
 subcort_labels: cfg/sub-MNI2009b_desc-allFSstyle_labels.txt
 lh_mmp: cfg/lh.hcp-mmp.59k_fs_LR.label.gii
 rh_mmp: cfg/rh.hcp-mmp.59k_fs_LR.label.gii
-#hcpmmp_atlas: cfg/HCP-MMP_BigBrain1p6mm.59k_fs_LR.dlabel.nii
 
 singularity_connectomewb: /project/6007967/software/transparentsingularity/connectome-workbench_1.4.1_20191117.simg/connectome-workbench_1.4.1_20191117.simg
 singularity_ciftify: /project/6007967/akhanf/singularity/bids-apps/tigrlab_fmriprep_ciftify_v1.3.2-2.3.3.sif

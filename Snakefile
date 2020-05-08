@@ -157,6 +157,8 @@ rule compute_correlation:
     input:
         ptseries = rules.parcellate_tseries.output,
         vol = rules.clean_tseries.output
+    params:
+        seed = config['seed']
     output: 'funcparc/{subject}/output/correlation_matrix.npz'
     group: 'preprocessing'
     script: 'scripts/compute_correlation.py'
@@ -183,7 +185,7 @@ rule spectral_clustering:
         correlation = rules.combine_correlation.output,
         rois = rules.create_atlas.output.nifti
     output:
-        niftis = expand('funcparc/clustering/seed-ZIR_method-spectralcosine_k-{k}_cluslabels.nii.gz',k=range(2,config['max_k']+1),allow_missing=True),
+        niftis = expand('funcparc/clustering/seed-{s}_method-spectralcosine_k-{k}_cluslabels.nii.gz',s=config['seed'], k=range(2,config['max_k']+1),allow_missing=True),
         labels = 'funcparc/clustering/cluster_labels.csv'
     params:
         max_k = config['max_k']

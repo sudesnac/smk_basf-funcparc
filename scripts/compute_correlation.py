@@ -16,7 +16,7 @@ structures = {}
 for brain_model in c.header.get_index_map(1).brain_models:
     name  = brain_model.brain_structure.split("STRUCTURE_",1)[1]
     if name == "BRAIN_STEM": # CIFTI doesn't like custom names so stored as BRAIN_STEM
-        name = "ZIR"
+        name = snakemake.params.seed[0]
         stype = brain_model.model_type.split("TYPE_",1)[1]
         start = brain_model.index_offset
         end   = brain_model.index_offset+brain_model.index_count
