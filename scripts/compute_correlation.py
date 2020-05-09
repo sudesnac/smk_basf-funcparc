@@ -21,7 +21,7 @@ for brain_model in c.header.get_index_map(1).brain_models:
         start = brain_model.index_offset
         end   = brain_model.index_offset+brain_model.index_count
         structures[name] = [stype, (start,end), c.get_fdata()[:,start:end]]
-zirdata = structures['ZIR'][2]
+seeddata = structures[snakemake.params.seed[0]][2]
 
 # Load cleaned parcellated timeseries
 pfile = snakemake.input.ptseries[0]
@@ -34,7 +34,7 @@ for ip in np.arange(0,n_parcels):
     parcel = p.header.get_index_map(1)[ip+3]
     name = parcel.name
     if name == "BRAIN_STEM":
-        name = "ZIR"
+        name = snakemake.params.seed[0]
         indices = parcel.voxel_indices_ijk
     if parcel.vertices:
         stype = 'CORTEX'
@@ -46,7 +46,7 @@ for ip in np.arange(0,n_parcels):
 labels = [d for d in parcels]
 
 # Calculate correlation between seed and targets
-corrmatrix = corr2_coeff(zirdata.T,pdata.T)
+corrmatrix = corr2_coeff(seeddata.T,pdata.T)
 fzmatrix =  np.arctanh(corrmatrix)
 
 # Write to pandas dataframe

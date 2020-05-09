@@ -1,0 +1,20 @@
+participants_tsv: participants_3T.tsv
+
+hcp_dir: /project/6007967/akhanf/projects/hcp/HCP_1200_T1w_Diffusion_FS
+
+run: rfMRI_REST1_RL
+voxel_size: 2p0mm
+vertex_nr: 32k
+sigma: 2.0
+
+seed: BASF
+seed_roi: cfg/seed_2p0mm.nii.gz
+subcort_atlas: cfg/sub-MNI2009b_desc-allFSstyle_2p0mm.nii.gz
+subcort_labels: cfg/sub-MNI2009b_desc-allFSstyle_labels.txt
+lh_mmp: cfg/lh.hcp-mmp.32k_fs_LR.label.gii
+rh_mmp: cfg/rh.hcp-mmp.32k_fs_LR.label.gii
+
+singularity_connectomewb: /project/6007967/software/transparentsingularity/connectome-workbench_1.4.1_20191117.simg/connectome-workbench_1.4.1_20191117.simg
+singularity_ciftify: /project/6007967/akhanf/singularity/bids-apps/tigrlab_fmriprep_ciftify_v1.3.2-2.3.3.sif
+
+max_k: 4

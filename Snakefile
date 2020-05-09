@@ -2,17 +2,21 @@ from os.path import join
 from glob import glob
 import pandas as pd
 
-configfile: 'config.yml'
+configfile: 'config_3T.yml'
 
 #load participants.tsv file (list of HCP subject IDs),
 df = pd.read_table(config['participants_tsv'])
 subjects = df.participant_id.to_list() 
 
+run = config['run']
+vox_res = config['voxel_size']
+vtx_res = config['vertex_nr'] 
+
 wildcard_constraints:
     subject="[0-9]+"
 
 rule all:
-    input: expand('funcparc/clustering/seed-ZIR_method-spectralcosine_k-{k}_cluslabels.nii.gz',k=range(2,config['max_k']+1),allow_missing=True)
+    input: expand('funcparc/clustering/seed-{s}_method-spectralcosine_k-{k}_cluslabels.nii.gz',s=config['seed'], k=range(2,config['max_k']+1),allow_missing=True)
 
 # rule unzip_packages:
 #     input: 
@@ -32,7 +36,7 @@ rule merge_roi:
     input:
         atlas = config['subcort_atlas'],
         roi = config['seed_roi']
-    output: 'funcparc/atlas/BigBrain1p6mm.nii.gz'
+    output: expand('funcparc/atlas/BigBrain{vs}.nii.gz',vs=vox_res)
     group: 'atlas'
     run:    
         import numpy as np
@@ -55,8 +59,8 @@ rule create_atlas:
         lh = config['lh_mmp'],
         rh = config['rh_mmp']
     output:
-        nifti = 'funcparc/atlas/HCP-MMP_BigBrain1p6mm.nii.gz',
-        cifti = 'funcparc/atlas/HCP-MMP_BigBrain1p6mm.59k_fs_LR.dlabel.nii'
+        nifti = expand('funcparc/atlas/HCP-MMP_BigBrain{vs}.nii.gz',vs=vox_res),
+        cifti = expand('funcparc/atlas/HCP-MMP_BigBrain{vs}.{nv}_fs_LR.dlabel.nii',vs=vox_res,nv=vtx_res) 
     group: 'atlas'
     singularity: config['singularity_connectomewb']
     shell:
@@ -66,13 +70,13 @@ rule create_atlas:
 # Prepare subcortical rs-fMRI data as done by HCP
 rule prepare_subcort:
     input:
-        vol = join(config['hcp1200_dir'],'{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/rfMRI_REST2_7T_AP.nii.gz'),
+        vol = expand(join(config['hcp_dir'],'{{subject}}/MNINonLinear/Results/{r}/{r}_hp2000_clean.nii.gz'),r=run),
         rois = rules.create_atlas.output.nifti
     output:
-        out = 'funcparc/{subject}/input/rfMRI_REST2_7T_AP_AtlasSubcortical.nii.gz'
+        out = expand('funcparc/{{subject}}/input/{r}_AtlasSubcortical.nii.gz',r=run)
     params:
         sigma = 1.6,
-        temp = 'funcparc/{subject}/temp'
+        temp = 'funcparc/{subject}/tmp'
     group: 'preprocessing'
     singularity: config['singularity_connectomewb']
     log: 'logs/prepare_subcort/{subject}.log'
@@ -84,10 +88,12 @@ rule prepare_subcort:
 # Extract cortical timeseries data
 rule cifti_separate:
     input: 
-        dtseries = join(config['hcp1200_dir'],'{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/rfMRI_REST2_7T_AP_Atlas_1.6mm.dtseries.nii')
+        dtseries = expand(join(config['hcp_dir'],'{{subject}}/MNINonLinear/Results/{r}/{r}_Atlas_MSMAll_hp2000_clean.dtseries.nii'),r=run)
     output: 
-        lh = 'funcparc/{subject}/input/rfMRI_REST2_7T_AP.L.59k_fs_LR.func.gii',
-        rh = 'funcparc/{subject}/input/rfMRI_REST2_7T_AP.R.59k_fs_LR.func.gii'
+        lh = expand('funcparc/{{subject}}/input/{r}.L.{nv}_fs_LR.func.gii',nv=vtx_res,r=run),
+        rh = expand('funcparc/{{subject}}/input/{r}.R.{nv}_fs_LR.func.gii',nv=vtx_res,r=run)
+    params:
+        nr_vertices = config['vertex_nr']
     group: 'preprocessing'
     singularity: config['singularity_connectomewb']
     threads: 8
@@ -103,7 +109,7 @@ rule create_dtseries:
         rois = rules.create_atlas.output.nifti,
         lh = rules.cifti_separate.output.lh,
         rh = rules.cifti_separate.output.rh
-    output: 'funcparc/{subject}/input/rfMRI_REST2_7T_AP.59k_fs_LR.dtseries.nii'
+    output: expand('funcparc/{{subject}}/input/{r}.{nv}_fs_LR.dtseries.nii',nv=vtx_res,r=run) 
     group: 'preprocessing'
     singularity: config['singularity_connectomewb']
     threads: 8
@@ -112,39 +118,39 @@ rule create_dtseries:
     shell:
         'wb_command -cifti-create-dense-timeseries {output} -volume {input.vol} {input.rois} -left-metric {input.lh} -right-metric {input.rh}'
 
-# Extract confounds for cleaning rs-fMRI data
-rule extract_confounds:
-    input:
-        vol = join(config['hcp1200_dir'],'{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/rfMRI_REST2_7T_AP.nii.gz'),
-        rois = join(config['hcp1200_dir'],'{subject}/MNINonLinear/ROIs/Atlas_wmparc.1.60.nii.gz'),
-        movreg = join(config['hcp1200_dir'],'{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/Movement_Regressors_dt.txt')
-    output: 'funcparc/{subject}/input/confounds.tsv'
-    group: 'preprocessing'
-    log: 'logs/extract_confounds/{subject}.log'
-    resources:
-        mem_mb = 32000
-    script: 'scripts/extract_confounds.py'
+# # Extract confounds for cleaning rs-fMRI data
+# rule extract_confounds:
+#     input:
+#         vol = rules.prepare_subcort.input.vol,
+#         rois = join(config['hcp_dir'],'{subject}/MNINonLinear/ROIs/Atlas_wmparc.1.60.nii.gz'),
+#         movreg = join(config['hcp_dir'],'{subject}/MNINonLinear/Results/rfMRI_REST2_7T_AP/Movement_Regressors_dt.txt')
+#     output: 'funcparc/{subject}/input/confounds.tsv'
+#     group: 'preprocessing'
+#     log: 'logs/extract_confounds/{subject}.log'
+#     resources:
+#         mem_mb = 32000
+#     script: 'scripts/extract_confounds.py'
 
-# Clean rs-fMRI data
-rule clean_tseries:
-    input:
-        dtseries = rules.create_dtseries.output,
-        confounds = rules.extract_confounds.output
-    output: 'funcparc/{subject}/input_cleaned/rfMRI_REST2_7T_AP.59k_fs_LR.dtseries.nii'
-    group: 'preprocessing'
-    singularity: config['singularity_ciftify']
-    log: 'logs/clean_dtseries/{subject}.log'
-    threads: 8
-    resources:
-        mem_mb = 32000
-    shell:
-        'ciftify_clean_img --output-file={output} --detrend --standardize --confounds-tsv={input.confounds} --cf-cols="X,Y,Z,RotX,RotY,RotZ,CSF,WhiteMatter,GlobalSignal" --low-pass=0.08 --high-pass=0.009 --tr=1 --verbose {input.dtseries} &> {log}'
+# # Clean rs-fMRI data
+# rule clean_tseries:
+#     input:
+#         dtseries = rules.create_dtseries.output,
+#         #confounds = rules.extract_confounds.output
+#     output: expand('funcparc/{{subject}}/input_cleaned/{r}.{nv}_fs_LR.dtseries.nii',nv=vtx_res,r=run) 
+#     group: 'preprocessing'
+#     singularity: config['singularity_ciftify']
+#     log: 'logs/clean_dtseries/{subject}.log'
+#     threads: 8
+#     resources:
+#         mem_mb = 32000
+#     shell:
+#         'ciftify_clean_img --output-file={output} --detrend --standardize --tr=0.720 --verbose {input.dtseries} &> {log}'
 
 rule parcellate_tseries:
     input:
-        dtseries = rules.clean_tseries.output,
+        dtseries = rules.create_dtseries.output,
         rois = rules.create_atlas.output.cifti
-    output: 'funcparc/{subject}/input_parcellated/rfMRI_REST2_7T_AP.59k_fs_LR.ptseries.nii'
+    output: expand('funcparc/{{subject}}/input_parcellated/{r}.{nv}_fs_LR.ptseries.nii',nv=vtx_res,r=run)
     group: 'preprocessing'
     singularity: config['singularity_connectomewb']
     threads: 8
@@ -156,7 +162,7 @@ rule parcellate_tseries:
 rule compute_correlation:
     input:
         ptseries = rules.parcellate_tseries.output,
-        vol = rules.clean_tseries.output
+        vol = rules.create_dtseries.output
     params:
         seed = config['seed']
     output: 'funcparc/{subject}/output/correlation_matrix.npz'
@@ -183,7 +189,7 @@ rule combine_correlation:
 rule spectral_clustering:
     input:
         correlation = rules.combine_correlation.output,
-        rois = rules.create_atlas.output.nifti
+        rois = rules.create_atlas.output.nifti[0]
     output:
         niftis = expand('funcparc/clustering/seed-{s}_method-spectralcosine_k-{k}_cluslabels.nii.gz',s=config['seed'], k=range(2,config['max_k']+1),allow_missing=True),
         labels = 'funcparc/clustering/cluster_labels.csv'
