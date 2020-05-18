@@ -17,4 +17,4 @@ rh_mmp: cfg/rh.hcp-mmp.32k_fs_LR.label.gii
 singularity_connectomewb: /project/6007967/software/transparentsingularity/connectome-workbench_1.4.1_20191117.simg/connectome-workbench_1.4.1_20191117.simg
 singularity_ciftify: /project/6007967/akhanf/singularity/bids-apps/tigrlab_fmriprep_ciftify_v1.3.2-2.3.3.sif
 
-max_k: 4
+max_k: 12
